@@ -21,19 +21,16 @@ function Wechat(opts) {   //构造函数，用以生成实例，完成初始化�
         return that.updateAccessToken();
       }
       if (that.isValidAccessToken(data)) {
-        Promise.resolve(data);
+        that.access_token = data.access_token;
+        that.expires_in = data.expires_in;
+        that.saveAccessToken(JSON.stringify(data));
       } else {
         return that.updateAccessToken();
       }
-    })
-    .then(function (data) {
-      that.access_token = data.access_token;
-      that.expires_in = data.expires_in;
-      that.saveAccessToken(JSON.stringify(data));
     });
 }
 Wechat.prototype.isValidAccessToken = function (data) {
-  if (!data || !data.access_token || !data.expire_in) {
+  if (!data || !data.access_token || !data.expires_in) {
     return false
   }
   var access_token = data.access_token;
@@ -49,7 +46,7 @@ Wechat.prototype.isValidAccessToken = function (data) {
 Wechat.prototype.getAccessToken = function () {
   var configURL = this.configURL;
   return new Promise(function (resolve, reject) {
-    fs.readFile(configURL, function (err, content) {
+    fs.readFile(configURL, {encoding: 'utf8'}, function (err, content) {
       if (err) reject(err);
       else resolve(content);
     });
@@ -75,6 +72,7 @@ Wechat.prototype.updateAccessToken = function () {
         var now = Date.now();
         var expire_in = now + (data.expires_in - 20) * 1000; // 考虑到网络延时等情况，需要提前刷新
         data.expires_in = expire_in;
+        console.log('更新AccessToken');
         resolve(data)
       })
   })

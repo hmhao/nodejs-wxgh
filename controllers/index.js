@@ -1,5 +1,6 @@
 var crypto = require('crypto');
 var Wechat = require('./wechat');
+var reply = require('./reply');
 
 function checkSignature (token, query) {
   var signature = query.signature;
@@ -48,26 +49,23 @@ function format (data) {
 }
 
 function handler (req, res, next) {
-  var data = format(req.body.xml);
-  if(data.MsgType  === 'event'){
-    if(data.Event === 'subscribe'){
-      res.status(200);
-      res.type('application/xml');
-      res.send('<xml>'+
-        '<ToUserName><![CDATA['+ data.FromUserName +']]></ToUserName>'+
-        '<FromUserName><![CDATA['+ data.ToUserName +']]></FromUserName>'+
-        '<CreateTime>'+Date.now()+'</CreateTime>'+
-        '<MsgType><![CDATA[text]]></MsgType>'+
-        '<Content><![CDATA[你好，感谢你的关注！]]></Content>'+
-        '</xml>');
-    } else {
-      res.send('ok');
-    }
-  }
+  var message = req.wechat = format(req.body.xml);
+  var callback = handler.get(message.MsgType);
+  callback(req, res, next);
 }
+handler.types = {};
+handler.get = function (type) {
+  return handler.types[type] || function () {}
+};
+handler.set = function (type, callback) {
+  handler.types[type] = callback;
+};
 
 module.exports = function (opts) {
   var wechat = new Wechat(opts);
+  for (var type in reply) {
+    handler.set(type, reply[type])
+  }
   return function (req, res, next) {
     var query = req.query;
     if (checkSignature(opts.token, query)) {
