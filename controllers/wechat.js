@@ -4,15 +4,35 @@ var request = Promise.promisify(require('request'));
 
 var prefix = 'https://api.weixin.qq.com/cgi-bin/';
 var api = {
-  accessToken: prefix + 'token?grant_type=client_credential'
+  accessToken: prefix + 'token?grant_type=client_credential',
+  upload: prefix + 'media/upload?'
 };
 
 function Wechat(opts) {   //构造函数，用以生成实例，完成初始化工作，读写票据
-  var that = this;
   this.configURL = opts.configURL;
   this.appID = opts.appID;
   this.appSecret = opts.appSecret;
+  this.fetchAccessToken()
+}
+Wechat.prototype.isValidAccessToken = function (data) {
+  if (!data || !data.access_token || !data.expires_in) {
+    return false
+  }
+  var access_token = data.access_token;
+  var expires_in = data.expires_in;
+  var now = Date.now();
 
+  if (now < expires_in) {
+    return true;
+  } else {
+    return false;
+  }
+};
+Wechat.prototype.fetchAccessToken = function () {
+  var that = this;
+  if (this.isValidAccessToken(this)) {
+    return Promise.resolve(this);
+  }
   this.getAccessToken()
     .then(function (data) {
       try {
@@ -30,21 +50,8 @@ function Wechat(opts) {   //构造函数，用以生成实例，完成初始化�
       that.access_token = data.access_token;
       that.expires_in = data.expires_in;
       that.saveAccessToken(JSON.stringify(data));
+      return Promise.resolve(data);
     });
-}
-Wechat.prototype.isValidAccessToken = function (data) {
-  if (!data || !data.access_token || !data.expires_in) {
-    return false
-  }
-  var access_token = data.access_token;
-  var expires_in = data.expires_in;
-  var now = Date.now();
-
-  if (now < expires_in) {
-    return true;
-  } else {
-    return false;
-  }
 };
 Wechat.prototype.getAccessToken = function () {
   var configURL = this.configURL;
@@ -77,6 +84,31 @@ Wechat.prototype.updateAccessToken = function () {
         data.expires_in = expire_in;
         console.log('更新AccessToken');
         resolve(data)
+      })
+  })
+};
+Wechat.prototype.uploadMaterial = function (type, filepath) {
+  var that = this;
+  var formData = {
+    media: fs.createReadStream(filepath)
+  };
+
+  return new Promise(function (resolve, reject) {
+    that
+      .fetchAccessToken()
+      .then(function (data) {
+        var url = api.upload + 'access_token=' + data.access_token + '&type=' + type;
+        request({method: 'POST', url: url, formData: formData, json: true})
+          .then(function (res) {
+            if (res.body) {
+              resolve(res.body)
+            } else {
+              throw new Error('Upload material fails');
+            }
+          })
+          .catch(function (err) {
+            reject(err);
+          })
       })
   })
 };

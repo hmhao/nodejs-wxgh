@@ -53,7 +53,7 @@ function getCompiled(content, message) {
   var info = {
     content: content,
     createTime: Date.now(),
-    msgType: Array.isArray(content) ? 'news' : 'text',
+    msgType: content.type || (Array.isArray(content) ? 'news' : 'text'),
     toUserName: message.FromUserName,
     fromUserName: message.ToUserName
   };
@@ -61,7 +61,7 @@ function getCompiled(content, message) {
 }
 
 function handler (req, res, next) {
-  var message = req.wechat = format(req.body.xml);
+  var message = req.wechatMsg = format(req.body.xml);
   var service = handler.get(message.MsgType);
   service(req, res, function () {
     res.status(200);
@@ -88,6 +88,7 @@ module.exports = function (opts) {
       if (req.method === 'GET') {
         res.send(query.echostr);
       } else if (req.method === 'POST') {
+        req.wechatApi = wechat;
         handler(req, res, next);
       }
     } else {

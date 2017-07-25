@@ -1,5 +1,7 @@
+var path = require('path');
+
 exports.event = function (req, res, next) {
-  var message = req.wechat;
+  var message = req.wechatMsg;
   if (message.Event === 'subscribe') {
     if (message.EventKey) {
       console.log(message.FromUserName + ' 扫二维码关注：' + message.EventKey + ' ' + message.Ticket);
@@ -22,26 +24,24 @@ exports.event = function (req, res, next) {
 };
 
 exports.text = function (req, res, next) {
-  var message = req.wechat;
+  var message = req.wechatMsg;
   var content = message.Content;
-  var reply = '你说的 ' + content + ' 太复杂了';
   switch (content) {
     case '1':
-      reply = '123';
+      res.body = '123';
+      next();
       break;
     case '2':
-      reply = 234;
-      break;
-    case '3':
-      reply = [{
+      res.body = [{
         title: '王者荣耀',
         description: '王者-夏侯惇',
         picUrl: 'http://pic2.52pk.com/files/160901/7154484_151243_1_lit.jpg',
         url: 'http://pvp.qq.com/web201605/herodetail/126.shtml'
       }];
+      next();
       break;
-    case '4':
-      reply = [{
+    case '3':
+      res.body = [{
         title: '王者荣耀',
         description: '王者-夏侯惇',
         picUrl: 'http://pic2.52pk.com/files/160901/7154484_151243_1_lit.jpg',
@@ -52,8 +52,45 @@ exports.text = function (req, res, next) {
         picUrl: 'http://www.9669.com/uploadfile/2016/0127/20160127023811879.jpg',
         url: 'http://pvp.qq.com/'
       }];
+      next();
       break;
+    case '4':
+      req.wechatApi.uploadMaterial('image', path.join(__dirname, '../public/images/1.jpg'))
+        .then(function (data) {
+          res.body = {
+            type: 'image',
+            mediaId: data.media_id
+          };
+          next()
+        });
+      break;
+    case '5':
+      req.wechatApi.uploadMaterial('video', path.join(__dirname, '../public/videos/1.mp4'))
+        .then(function (data) {
+          res.body = {
+            type: 'video',
+            title: '测试视频',
+            description: '卧槽，这才叫胸肌！',
+            mediaId: data.media_id
+          };
+          next()
+        });
+      break;
+    case '6':
+      req.wechatApi.uploadMaterial('image', path.join(__dirname, '../public/images/2.jpg'))
+        .then(function (data) {
+          res.body = {
+            type: 'music',
+            title: '测试音乐',
+            description: '放松一下',
+            musicUrl: 'http://96.f.1ting.com/5977438a/dfc6d40ae211857fccbe92694bf1ae26/zzzzzmp3/2016eMay/12X/12b_Swing/01.mp3',
+            thumbMediaId: data.media_id
+          };
+          next()
+        });
+      break;
+    default:
+      res.body = '你说的 ' + content + ' 太复杂了';
+      next()
   }
-  res.body = reply;
-  next()
 };
