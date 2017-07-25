@@ -21,12 +21,15 @@ function Wechat(opts) {   //构造函数，用以生成实例，完成初始化�
         return that.updateAccessToken();
       }
       if (that.isValidAccessToken(data)) {
-        that.access_token = data.access_token;
-        that.expires_in = data.expires_in;
-        that.saveAccessToken(JSON.stringify(data));
+        return Promise.resolve(data);
       } else {
         return that.updateAccessToken();
       }
+    })
+    .then(function (data) {
+      that.access_token = data.access_token;
+      that.expires_in = data.expires_in;
+      that.saveAccessToken(JSON.stringify(data));
     });
 }
 Wechat.prototype.isValidAccessToken = function (data) {

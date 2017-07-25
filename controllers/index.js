@@ -1,6 +1,7 @@
 var crypto = require('crypto');
 var Wechat = require('./wechat');
 var reply = require('./reply');
+var tpl = require('./tpl');
 
 function checkSignature (token, query) {
   var signature = query.signature;
@@ -48,10 +49,25 @@ function format (data) {
   }
 }
 
+function getCompiled(content, message) {
+  var info = {
+    content: content,
+    createTime: Date.now(),
+    msgType: Array.isArray(content) ? 'news' : 'text',
+    toUserName: message.FromUserName,
+    fromUserName: message.ToUserName
+  };
+  return tpl.compiled(info)
+}
+
 function handler (req, res, next) {
   var message = req.wechat = format(req.body.xml);
-  var callback = handler.get(message.MsgType);
-  callback(req, res, next);
+  var service = handler.get(message.MsgType);
+  service(req, res, function () {
+    res.status(200);
+    res.type('application/xml');
+    res.send(getCompiled(res.body, message));
+  });
 }
 handler.types = {};
 handler.get = function (type) {
