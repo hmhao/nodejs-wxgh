@@ -27,11 +27,11 @@ exports.text = function (req, res, next) {
   var message = req.wechatMsg;
   var content = message.Content;
   switch (content) {
-    case '1':
+    case '1': // 回复文本消息
       res.body = '123';
       next();
       break;
-    case '2':
+    case '2': // 回复单条图文消息
       res.body = [{
         title: '王者荣耀',
         description: '王者-夏侯惇',
@@ -40,7 +40,7 @@ exports.text = function (req, res, next) {
       }];
       next();
       break;
-    case '3':
+    case '3': // 回复多条图文消息
       res.body = [{
         title: '王者荣耀',
         description: '王者-夏侯惇',
@@ -54,7 +54,8 @@ exports.text = function (req, res, next) {
       }];
       next();
       break;
-    case '4':
+    // 临时素材
+    case '4': // 回复图片消息
       req.wechatApi.uploadMaterial('image', path.join(__dirname, '../public/images/1.jpg'))
         .then(function (data) {
           res.body = {
@@ -64,7 +65,7 @@ exports.text = function (req, res, next) {
           next()
         });
       break;
-    case '5':
+    case '5': // 回复视频消息
       req.wechatApi.uploadMaterial('video', path.join(__dirname, '../public/videos/1.mp4'))
         .then(function (data) {
           res.body = {
@@ -76,7 +77,7 @@ exports.text = function (req, res, next) {
           next()
         });
       break;
-    case '6':
+    case '6': // 回复音乐消息
       req.wechatApi.uploadMaterial('image', path.join(__dirname, '../public/images/2.jpg'))
         .then(function (data) {
           res.body = {
@@ -87,6 +88,108 @@ exports.text = function (req, res, next) {
             thumbMediaId: data.media_id
           };
           next()
+        });
+      break;
+    // 永久素材
+    case '7': // 回复图片消息
+      req.wechatApi.uploadMaterial('image', path.join(__dirname, '../public/images/2.jpg'), {type: 'image'})
+        .then(function (data) {
+          res.body = {
+            type: 'image',
+            mediaId: data.media_id
+          };
+          next()
+        });
+      break;
+    case '8': // 回复视频消息
+      req.wechatApi.uploadMaterial('video', path.join(__dirname, '../public/videos/1.mp4'),
+          {type:'video', description:'{"title":"胸肌", "introduction":"太强悍的胸肌了"}'})
+        .then(function (data) {
+          res.body = {
+            type: 'video',
+            title: '测试视频',
+            description: '卧槽，这才叫胸肌！',
+            mediaId: data.media_id
+          };
+          next()
+        });
+      break;
+    case '9': // 回复多条图文消息
+      // 先传个图片拿到素材id
+      req.wechatApi.uploadMaterial('image', path.join(__dirname, '../public/images/2.jpg'), {})
+        .then(function (picData) {
+          // 组装图文消息
+          var media = {
+            articles:[{
+              title: '小程序',
+              thumb_media_id: picData.media_id,
+              author: 'huozw',
+              digest: '没有摘要',
+              show_cover_pic: 1,
+              content: '新增永久图文素材',
+              content_source_url: 'https://github.com'
+            }, {
+              title: '凤凰新闻',
+              thumb_media_id: picData.media_id,
+              author: 'huozw',
+              digest: '凤凰新闻',
+              show_cover_pic: 1,
+              content: '新增永久图文素材',
+              content_source_url: 'http://www.ifeng.com/'
+            }]
+          };
+          // 上传图文
+          req.wechatApi.uploadMaterial('news', media, {})
+            .then(function (data) {
+              // 获取图文
+              req.wechatApi.fetchMaterial(data.media_id,'news',{})
+                .then(function (news) {
+                  var items = news.news_item;
+                  var news = [];
+                  items.forEach(function(temp){
+                    news.push({
+                      title: temp.title,
+                      description: temp.digest,
+                      picUrl: picData.url,
+                      url: temp.content_source_url
+                    })
+                  });
+                  res.body = news;
+                  next();
+                })
+            })
+        });
+      break;
+    case '10': // 获取素材总数和素材列表
+      req.wechatApi.countMaterial()
+        .then(function (counts) {
+          console.log(JSON.stringify(counts));
+          Promise.all([
+            req.wechatApi.batchMaterial({
+                type:'image',
+                offset: 0,
+              count: 10
+            }),
+            req.wechatApi.batchMaterial({
+              type:'video',
+              offset: 0,
+              count: 10
+            }),
+            req.wechatApi.batchMaterial({
+              type:'voice',
+              offset: 0,
+              count: 10
+            }),
+            req.wechatApi.batchMaterial({
+              type:'news',
+              offset: 0,
+              count: 10
+            })
+          ]).then(function (lists) {
+            console.log(JSON.stringify(lists));
+            res.body = '到终端查看素材统计数据！';
+            next()
+          });
         });
       break;
     default:
