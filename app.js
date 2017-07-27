@@ -1,46 +1,38 @@
-var express = require('express');
-var path = require('path');
-var favicon = require('serve-favicon');
-var logger = require('morgan');
-var cookieParser = require('cookie-parser');
-var bodyParser = require('body-parser');
-var xmlparser = require('express-xml-bodyparser');
+const Koa = require('koa');
+const logger = require('koa-logger');
+const xmlParser = require('koa-xml-body');
+const bodyparser = require('koa-bodyparser');
+const serve = require('koa-static');
+const json = require('koa-json');
+const views = require('koa-views');
+const onerror = require('koa-onerror');
 
-var index = require('./routes/index');
-
-var app = express();
-
-// view engine setup
-app.set('views', path.join(__dirname, 'views'));
-app.set('view engine', 'ejs');
-
-// uncomment after placing your favicon in /public
-//app.use(favicon(path.join(__dirname, 'public', 'favicon.ico')));
-app.use(logger('dev'));
-app.use(bodyParser.json());
-app.use(bodyParser.urlencoded({ extended: false }));
-app.use(xmlparser({ normalize: false, normalizeTags: false }));
-app.use(cookieParser());
-app.use(express.static(path.join(__dirname, 'public')));
-
-app.use('/', index);
-
-// catch 404 and forward to error handler
-app.use(function(req, res, next) {
-  var err = new Error('Not Found');
-  err.status = 404;
-  next(err);
-});
+const app = new Koa();
+const index = require('./routes/index');
 
 // error handler
-app.use(function(err, req, res, next) {
-  // set locals, only providing error in development
-  res.locals.message = err.message;
-  res.locals.error = req.app.get('env') === 'development' ? err : {};
+onerror(app);
 
-  // render the error page
-  res.status(err.status || 500);
-  res.render('error');
+// global middlewares
+app.use(views('views', {
+  root: __dirname + '/views',
+  extension: 'ejs'
+}));
+app.use(xmlParser()); // 必须在bodyparse前
+app.use(bodyparser());
+app.use(json());
+app.use(logger());
+
+app.use(async (ctx, next) => {
+  const start = new Date();
+  await next();
+  const ms = new Date() - start;
+  console.log(`${ctx.method} ${ctx.url} - ${ms}ms`)
 });
+
+app.use(serve(__dirname + '/public'));
+
+// routes definition
+app.use(index.routes(), index.allowedMethods());
 
 module.exports = app;

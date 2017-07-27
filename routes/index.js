@@ -1,7 +1,6 @@
-var express = require('express');
-var config = require('../config');
-var controller = require('../controllers');
-var router = express.Router();
+const router = require('koa-router')();
+const config = require('../config');
+const controller = require('../controllers');
 
 router.all('/', controller(config.wechat));
 

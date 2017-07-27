@@ -1,22 +1,20 @@
-var crypto = require('crypto');
-var Wechat = require('./wechat');
-var reply = require('./reply');
-var tpl = require('./tpl');
+const crypto = require('crypto');
+const Wechat = require('./wechat');
+const reply = require('./reply');
+const tpl = require('./tpl');
 
 function checkSignature (token, query) {
-  var signature = query.signature;
-  var timestamp = query.timestamp;
-  var nonce = query.nonce;
+  let {signature,timestamp, nonce}  = query;
 
   /*  加密/校验流程如下： */
   //1. 将token、timestamp、nonce三个参数进行字典序排序
-  var array = new Array(token, timestamp, nonce);
+  let array = new Array(token, timestamp, nonce);
   array.sort();
-  var str = array.toString().replace(/,/g, '');
+  let str = array.toString().replace(/,/g, '');
 
   //2. 将三个参数字符串拼接成一个字符串进行sha1加密
-  var sha1Code = crypto.createHash('sha1');
-  var code = sha1Code.update(str, 'utf-8').digest('hex');
+  let sha1Code = crypto.createHash('sha1');
+  let code = sha1Code.update(str, 'utf-8').digest('hex');
 
   //3. 开发者获得加密后的字符串可与signature对比，标识该请求来源于微信
   return code === signature
@@ -60,14 +58,13 @@ function getCompiled(content, message) {
   return tpl.compiled(info)
 }
 
-function handler (req, res, next) {
-  var message = req.wechatMsg = format(req.body.xml);
-  var service = handler.get(message.MsgType);
-  service(req, res, function () {
-    res.status(200);
-    res.type('application/xml');
-    res.send(getCompiled(res.body, message));
-  });
+async function handler (ctx, next) {
+  let message = ctx.wechatMsg = format(ctx.request.body.xml);
+  let service = handler.get(message.MsgType);
+  await service(ctx);
+  ctx.status = 200;
+  ctx.type = 'application/xml';
+  ctx.body = getCompiled(ctx.body, message);
 }
 handler.types = {};
 handler.get = function (type) {
@@ -78,21 +75,21 @@ handler.set = function (type, callback) {
 };
 
 module.exports = function (opts) {
-  var wechat = new Wechat(opts);
-  for (var type in reply) {
+  let wechat = new Wechat(opts);
+  for (let type in reply) {
     handler.set(type, reply[type])
   }
-  return function (req, res, next) {
-    var query = req.query;
+  return async (ctx, next) => {
+    var query = ctx.query;
     if (checkSignature(opts.token, query)) {
-      if (req.method === 'GET') {
-        res.send(query.echostr);
-      } else if (req.method === 'POST') {
-        req.wechatApi = wechat;
-        handler(req, res, next);
+      if (ctx.method === 'GET') {
+        ctx.body = query.echostr;
+      } else if (ctx.method === 'POST') {
+        ctx.wechatApi = wechat;
+        await handler(ctx, next);
       }
     } else {
-      res.send('error');
+      ctx.body = 'error';
     }
   }
 };
