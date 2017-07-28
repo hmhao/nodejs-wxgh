@@ -100,7 +100,7 @@ exports.text = async function (ctx) {
       break;
     case '9': // 回复多条图文消息
       // 先传个图片拿到素材id
-      var picData = await ctx.wechatApi.uploadImageMaterial('image', path.join(__dirname, '../public/images/2.jpg'));
+      var picData = await ctx.wechatApi.uploadImageMaterial(path.join(__dirname, '../public/images/2.jpg'));
       // 组装图文消息
       var media = {
         articles:[{
@@ -148,6 +148,50 @@ exports.text = async function (ctx) {
       ]);
       console.log(JSON.stringify(lists));
       ctx.body = '到终端查看素材统计数据！';
+      break;
+    case '11':
+      var groupName = 'wechat';
+      var groups = await ctx.wechatApi.fetchGroups();
+      console.log('分组列表：', groups);
+      var filterGroup = groups.groups.filter(function (g) {
+        return g.name === groupName
+      });
+      if (!filterGroup.length) {
+        var group = await ctx.wechatApi.createGroup(groupName);
+        console.log(`新分组${groupName}：`, group);
+        await ctx.wechatApi.updateGroup(group.group.id, 'weixin');
+        console.log('更新列表：', await ctx.wechatApi.fetchGroups());
+        await ctx.wechatApi.deleteGroup(group.group.id);
+        console.log('删除列表：', await ctx.wechatApi.fetchGroups());
+      }
+
+      var myGroup = await ctx.wechatApi.checkGroup(message.FromUserName);
+      console.log('查看自己的分组', myGroup);
+
+      filterGroup = groups.groups.filter(function (g) {
+        return g.id === myGroup.groupid && myGroup.groupid !== 0
+      });
+      if (filterGroup.length) {
+        ctx.body = `你所在的分组是${filterGroup[0].name}！`;
+      } else {
+        myGroup = await ctx.wechatApi.moveGroup(message.FromUserName, 2);
+        ctx.body = `你原来没有组，现移动到星标组！`;
+      }
+      break;
+    case '12':
+      var groupNum = 2;
+      var groups = [];
+      for (let i = 0, group; i < groupNum; i++) {
+        group = await ctx.wechatApi.createGroup('wechat' + i);
+        groups.push(group.group.id)
+      }
+      console.log(`创建分组：`, await ctx.wechatApi.fetchGroups());
+      await ctx.wechatApi.deleteGroup(groups);
+      console.log('删除列表：', await ctx.wechatApi.fetchGroups());
+      ctx.body = `分组Test！`;
+      break;
+    case '13':
+
       break;
     default:
       ctx.body = '你说的 ' + content + ' 太复杂了';

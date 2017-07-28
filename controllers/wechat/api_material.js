@@ -48,7 +48,7 @@ exports.uploadNewsMaterial = async function (news) {
   let opts = {
     url: `${this.prefix}/material/add_news?access_token=${access_token}`,
     method: 'POST',
-    formData: news
+    body: news
   };
   return this.request(opts, `Upload news material fails`);
 };
@@ -68,7 +68,7 @@ exports.fetchMaterial = async function (mediaId) {
   let opts = {
     url: `${this.prefix}/material/get_material?access_token=${access_token}`,
     method: 'POST',
-    formData: {
+    body: {
       media_id: mediaId
     }
   };
@@ -79,7 +79,7 @@ exports.deleteMaterial = async function (mediaId) {
   let opts = {
     url: `${this.prefix}/material/del_material?access_token=${access_token}`,
     method: 'POST',
-    formData: {
+    body: {
       media_id: mediaId
     }
   };
@@ -90,7 +90,7 @@ exports.updateNewsMaterial = async function (mediaId, news) {
   let opts = {
     url: `${this.prefix}/material/update_news?access_token=${access_token}`,
     method: 'POST',
-    formData: Object.assign({
+    body: Object.assign({
       media_id: mediaId
     }, news)
   };
@@ -108,10 +108,10 @@ exports.batchMaterial = async function (type, offset, count) {
   let opts = {
     url: `${this.prefix}/material/batchget_material?access_token=${access_token}`,
     method: 'POST',
-    formData: {
-      type: type,
-      offset: offset,
-      count: count
+    body: {
+      type,
+      offset,
+      count
     }
   };
   return this.request(opts, `Batch ${type} material fails`);
