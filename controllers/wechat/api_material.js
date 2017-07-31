@@ -41,7 +41,7 @@ exports.uploadMaterial = async function (type, material, description) {
   };
 });
 exports.uploadVideoMaterial = async function (material, description) {
-  this.uploadMaterial('video', material, description);
+  return this.uploadMaterial('video', material, description);
 };
 exports.uploadNewsMaterial = async function (news) {
   const { access_token } = await this.fetchAccessToken();

@@ -124,7 +124,7 @@ exports.text = async function (ctx) {
       // 上传图文
       var data = await ctx.wechatApi.uploadNewsMaterial(media);
       // 获取图文
-      var news = ctx.wechatApi.fetchMaterial(data.media_id);
+      var news = await ctx.wechatApi.fetchMaterial(data.media_id);
       var items = news.news_item;
       news = [];
       items.forEach(function(temp){
@@ -191,7 +191,17 @@ exports.text = async function (ctx) {
       ctx.body = `分组Test！`;
       break;
     case '13':
+      var user = await ctx.wechatApi.fetchUser(message.FromUserName);
+      console.log(user);
+      var users = await ctx.wechatApi.fetchUsers([message.FromUserName], 'en');
+      console.log(users);
+      ctx.body = JSON.stringify(users);
+      break;
+    case '14':
+      var userlist = await ctx.wechatApi.listUsers();
+      console.log(userlist);
 
+      ctx.body = JSON.stringify(userlist.total);
       break;
     default:
       ctx.body = '你说的 ' + content + ' 太复杂了';
