@@ -1,6 +1,8 @@
 const path = require('path');
 const Promise = require('bluebird');
 
+const related = {};
+
 exports.event = async function (ctx) {
   let message = ctx.wechatMsg;
   if (message.Event === 'subscribe') {
@@ -13,6 +15,7 @@ exports.event = async function (ctx) {
     ctx.body = '';
     console.log(message.FromUserName + ' 取消关注');
   } else if (message.Event === 'LOCATION') {
+    // 如果用户同意上报位置，用户每次打开公众号都会上报一次地理位置
     ctx.body = '您上报的地理位置是：' + message.Latitude + ',' + message.Longitude;
   } else if (message.Event === 'CLICK') {
     ctx.body = '您点击了菜单：' + message.EventKey;
@@ -20,6 +23,28 @@ exports.event = async function (ctx) {
     ctx.body = '关注后扫描二维码：' + message.Ticket;
   } else if (message.Event === 'VIEW') {
     ctx.body = '你点击了菜单中的连接：' + message.EventKey;
+  } else if (message.Event === 'scancode_push'){
+    console.log('scancode_push', message.ScanCodeInfo.ScanType, message.ScanCodeInfo.ScanResult);
+    ctx.body = '扫码推送事件：' + message.EventKey;
+  } else if (message.Event === 'scancode_waitmsg'){
+    console.log('scancode_waitmsg', message.ScanCodeInfo.ScanType, message.ScanCodeInfo.ScanResult);
+    ctx.body = '扫码推送中： ' + message.EventKey;
+  } else if (message.Event === 'pic_sysphoto'){
+    console.log('pic_sysphoto', message.SendPicsInfo.PicList, message.SendPicsInfo.Count);
+    related[message.CreateTime] = message;// 稍后将接收到的image信息关联起来
+    // ctx.body = '弹出系统拍照： ' + message.EventKey;
+  } else if (message.Event === 'pic_photo_or_album'){
+    console.log('pic_photo_or_album', message.SendPicsInfo.PicList, message.SendPicsInfo.Count);
+    related[message.CreateTime] = message;// 稍后将接收到的image信息关联起来
+    // ctx.body = '弹出拍照或者相册： ' + message.EventKey;
+  } else if (message.Event === 'pic_weixin'){
+    console.log('pic_weixin', message.SendPicsInfo.PicList, message.SendPicsInfo.Count);
+    related[message.CreateTime] = message;// 稍后将接收到的image信息关联起来
+    // ctx.body = '弹出微信相册发图器：' + message.EventKey;
+  } else if (message.Event === 'location_select'){
+    console.log(message.SendLocationInfo.Label);
+    related[message.CreateTime] = message;// 稍后将接收到的location信息关联起来
+    // ctx.body = '弹出地理位置选择器： ' + message.EventKey;
   }
 };
 
@@ -149,6 +174,7 @@ exports.text = async function (ctx) {
       console.log(JSON.stringify(lists));
       ctx.body = '到终端查看素材统计数据！';
       break;
+    // 用户管理
     case '11':
       var groupName = 'wechat';
       var groups = await ctx.wechatApi.fetchGroups();
@@ -203,7 +229,56 @@ exports.text = async function (ctx) {
 
       ctx.body = JSON.stringify(userlist.total);
       break;
+    // 群发
+    case '15':
+      var mpnews = {
+        media_id: 'rkI4MQq3qtIHSm1-kw0kla07odKb1037jVXII6d0Xrw'
+      };
+      var mpnData = await ctx.wechatApi.sendByGroup('mpnews', mpnews, 2);
+      console.log(mpnData);
+
+      /*var text = {
+        content: 'Test!!!'
+      };
+      var textData = await ctx.wechatApi.sendByGroup('text', text, 2);
+      console.log(textData);*/
+
+      ctx.body = 'Yeah!';
+      break;
+    case '16':
+      var mpnews = {
+        media_id: 'rkI4MQq3qtIHSm1-kw0kla07odKb1037jVXII6d0Xrw'
+      };
+      var mpnData = await ctx.wechatApi.previewMass('mpnews', mpnews, 'o5fPNv63aWjsPDsg610m9faND6so');
+      console.log(mpnData);
+
+      ctx.body = 'Yeah!';
+      break;
     default:
       ctx.body = '你说的 ' + content + ' 太复杂了';
   }
+};
+
+exports.image = async function (ctx) {
+  let message = ctx.wechatMsg;
+  if (related[message.CreateTime]) {
+    Object.assign(message, related[message.CreateTime]);
+    delete related[message.CreateTime];
+    if (message.Event === 'pic_sysphoto'){
+      ctx.body = '弹出系统拍照： ' + message.EventKey;
+    } else if (message.Event === 'pic_photo_or_album') {
+      ctx.body = '弹出拍照或者相册： ' + message.EventKey;
+    } else if (message.Event === 'pic_weixin'){
+      ctx.body = '弹出微信相册发图器：' + message.EventKey;
+    }
+  }
+};
+
+exports.location = async function (ctx) {
+  let message = ctx.wechatMsg;
+  if (related[message.CreateTime]) {
+    Object.assign(message, related[message.CreateTime]);
+    delete related[message.CreateTime]
+  }
+  ctx.body = `弹出地理位置选择器： ${message.EventKey}\n地理：${message.Label}\n位置：${message.Location_X} ${message.Location_Y}`;
 };

@@ -60,11 +60,12 @@ function getCompiled(content, message) {
 
 async function handler (ctx, next) {
   let message = ctx.wechatMsg = format(ctx.request.body.xml);
+  //console.log(JSON.stringify(message));
   let service = handler.get(message.MsgType);
   await service(ctx);
   ctx.status = 200;
   ctx.type = 'application/xml';
-  ctx.body = getCompiled(ctx.body, message);
+  ctx.body = getCompiled(ctx.body || '', message);
 }
 handler.types = {};
 handler.get = function (type) {
@@ -76,6 +77,15 @@ handler.set = function (type, callback) {
 
 module.exports = function (opts) {
   let wechat = new Wechat(opts);
+  wechat.once('inited', function () {
+    wechat.deleteMenu()
+      .then(function(){
+        return wechat.createMenu(require(opts.configMenu));
+      })
+      .then(function(msg){
+        console.log(`Create menu ${msg.errmsg}`);
+      });
+  });
   for (let type in reply) {
     handler.set(type, reply[type])
   }

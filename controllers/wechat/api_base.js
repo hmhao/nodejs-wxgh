@@ -1,9 +1,11 @@
+const EventEmitter = require('events').EventEmitter;
 const Promise = require('bluebird');
 const fs = Promise.promisifyAll(require('fs'));
 const request = Promise.promisify(require('request'));
 
-class Wechat {
+class Wechat extends EventEmitter{
   constructor(opts) {
+    super();
     this.configURL = opts.configURL;
     this.appID = opts.appID;
     this.appSecret = opts.appSecret;
@@ -12,7 +14,8 @@ class Wechat {
       json: true,
       timeout: 60000, // 60秒超时
     };
-    this.fetchAccessToken()
+    this.inited = false;
+    this.fetchAccessToken();
   }
   isValidAccessToken (data) {
     if (!data || !data.access_token || !data.expires_in) {
@@ -45,6 +48,10 @@ class Wechat {
     await fs.writeFileAsync(this.configURL, content);
     this.access_token = data.access_token;
     this.expires_in = data.expires_in;
+    if (!this.inited) {
+      this.inited = true;
+      this.emit('inited');
+    }
     return data;
   };
   async updateAccessToken () {
