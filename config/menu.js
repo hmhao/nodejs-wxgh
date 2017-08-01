@@ -36,15 +36,14 @@ module.exports = {
       'name':'弹出地理位置选择器',
       'type':'location_select',
       'key':'location_select'
-    }]
-    // ,{
+    // },{
     //   'name':'下发消息',
     //   'type':'media_id',
-    //   'media_id':'XX'
+    //   'media_id':'rkI4MQq3qtIHSm1-kw0klRoDl6fzcx5kG0Kv2MpYSfE'
     // },{
     //    "name": "跳转图文消息URL",
     //    "type": "view_limited",
-    //    "media_id": "XX"
-    // }
+    //    "media_id": "rkI4MQq3qtIHSm1-kw0klSMH_96Bae286mtiZkIcdx0"
+    }]
   }]
-}
+};
